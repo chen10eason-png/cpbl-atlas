@@ -59,6 +59,11 @@ def parse_team_history(html):
         g,w,l,t=map(val,(1,2,3,4))
         if w+l+t!=g:raise ValueError(f'Official history WLT total mismatch: {label}')
         r={'w':w,'l':l,'t':t}
+        if len(fields)>=12:
+            hw,hl,ht,aw,al,at=map(val,(6,7,8,9,10,11))
+            if hw+aw!=w or hl+al!=l or ht+at!=t:
+                raise ValueError(f'Official home/away WLT mismatch: {label}')
+            r.update({'homeW':hw,'homeL':hl,'homeT':ht,'awayW':aw,'awayL':al,'awayT':at})
         if part in result.setdefault(year,{}):raise ValueError('Duplicate official season rows')
         result[year][part]=r
     if not result:raise ValueError('Official team history has no recognized years')

@@ -91,6 +91,14 @@ def crawl_recordall(s,year,position):
     else:raise RuntimeError('Excessive CPBL pagination')
     return results
 
+def optional_decimal(row,key):
+    value=row.get(key)
+    if value is None:return None
+    raw=str(value).strip().replace(',','').replace('%','')
+    if raw in ('', '-', 'nan', 'None'):return None
+    try:return float(raw)
+    except (ValueError,TypeError):return None
+
 def integer(row,key):
     val=str(row.get(key,'0')).strip().replace(',','').replace('（','').replace('）','')
     try:return int(float(val))
@@ -126,7 +134,12 @@ def season_batter(row,roster,year):
     keys={'G':'出賽數','PA':'打席','AB':'打數','RBI':'打點','R':'得分','H':'安打','1B':'一安','2B':'二安','3B':'三安','HR':'全壘打','TB':'壘打數','SO':'被三振','SB':'盜壘','GIDP':'雙殺打','SH':'犧短','SF':'犧飛','BB':'四壞','HBP':'死球','CS':'盜壘刺'}
     o={'id':player_id(name,team,roster,year),'name':name,'team':team,'teamId':TEAM_IDS[team], 'identityVerified':(name,team) in roster}
     o.update({k:integer(row,v) for k,v in keys.items()})
-    for k in ('IBB','GO','FO'):o[k]=None
+    # Official native-rate values are only stored when present in the source.
+    o['IBB']=integer(row,'（故四）') if '（故四）' in row else None
+    o['GO']=None;o['FO']=None
+    o['opsPlusOfficial']=optional_decimal(row,'OPS+')
+    o['bipPctOfficial']=optional_decimal(row,'BIP%')
+    o['sourceType']='official-cpbl'
     o['avg']=ratio(o['H'],o['AB']);o['obp']=ratio(o['H']+o['BB']+o['HBP'],o['AB']+o['BB']+o['HBP']+o['SF']);o['slg']=ratio(o['TB'],o['AB'])
     o['ops']=round(o['obp']+o['slg'],5) if o['obp'] is not None and o['slg'] is not None else None
     o['iso']=round(o['slg']-o['avg'],5) if o['slg'] is not None and o['avg'] is not None else None
@@ -138,7 +151,12 @@ def season_pitcher(row,roster,year):
     keys={'G':'出賽數','GS':'先發','GR':'救援','CG':'完投','SHO':'完封','W':'勝場','L':'敗場','SV':'救援成功','HLD':'中繼成功','BF':'打席','NP':'投球數','H':'被安打','HR':'被全壘打','BB':'四壞','HBP':'死球','SO':'奪三振','WP':'暴投','BK':'投手犯規','R':'失分','ER':'自責分'}
     o={'id':player_id(name,team,roster,year),'name':name,'team':team,'teamId':TEAM_IDS[team], 'identityVerified':(name,team) in roster}
     o.update({k:integer(row,v) for k,v in keys.items()})
-    for k in ('NBB','IBB','GO','FO'):o[k]=None
+    o['NBB']=None
+    o['IBB']=integer(row,'（故四）') if '（故四）' in row else None
+    o['GO']=None;o['FO']=None
+    o['fipOfficial']=optional_decimal(row,'FIP')
+    o['eraPlusOfficial']=optional_decimal(row,'ERA+')
+    o['sourceType']='official-cpbl'
     o['IP']=str(row.get('投球局數','0.0')).strip();o['outs']=innings_outs(o['IP'])
     o['era']=ratio(o['ER']*27,o['outs']);o['whip']=ratio((o['BB']+o['H'])*3,o['outs']);o['k9']=ratio(o['SO']*27,o['outs']);o['bb9']=ratio(o['BB']*27,o['outs'])
     return o
@@ -152,16 +170,24 @@ def yearly_standings(s,year):
         for k in ('first','second'):
             record={**{i:stub[i] for i in ('year','id','name','short')},**part[k]}
             halves[k].append(record)
-        team_rows.append({**stub,**{x:part['first'][x]+part['second'][x] for x in ('w','l','t')}})
+        team_rows.append({**stub,**{x:part['first'][x]+part['second'][x] for x in ('w','l','t','homeW','homeL','homeT','awayW','awayL','awayT') if x in part['first'] and x in part['second']}})
     return team_rows,halves
 
 def run(year):
     s=requests.Session();s.headers.update({'User-Agent':'Mozilla/5.0 (compatible; independent CPBL stats research)'})
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    retry=Retry(total=3,backoff_factor=1.0,status_forcelist=[429,500,502,503,504],allowed_methods=frozenset(['GET','POST']),respect_retry_after_header=True)
+    s.mount('https://',HTTPAdapter(max_retries=retry))
     b=crawl_recordall(s,year,'01');p=crawl_recordall(s,year,'02')
     roster=roster_ids(s)
     batting=[season_batter(r,roster,year) for r in b];pitching=[season_pitcher(r,roster,year) for r in p]
     if len(batting)<100 or len(pitching)<50:raise RuntimeError(f'Incomplete official player coverage: {len(batting)}/{len(pitching)}')
     if any(not x['name'] or not x['team'] for x in batting+pitching):raise RuntimeError('Missing player/team names')
+    if any(r['AB'] < r['H'] or r['H'] < r['2B']+r['3B']+r['HR'] or r['PA'] < r['AB'] for r in batting):
+        raise RuntimeError('Official batter totals violate baseball accounting constraints')
+    if any(r['outs'] < 0 or r['ER'] > r['R'] for r in pitching):
+        raise RuntimeError('Official pitching totals violate baseball accounting constraints')
     for kind,rs in [('batting',batting),('pitching',pitching)]:
         ids=[(r['name'],r['team']) for r in rs]
         if len(ids)!=len(set(ids)):raise RuntimeError(f'Duplicate {kind} player/team rows')
@@ -171,7 +197,10 @@ def run(year):
     data={'year':year,'source':'cpbl.com.tw','sourceLicense':'Official public numerical statistics',
           'importedAt':datetime.now(timezone.utc).isoformat(timespec='seconds'),
           'batting':batting,'pitching':pitching,'fielding':[], 'teams':standings,'halves':halves,
-          'warnings':['Official historical ID not verified for all entries','Fielding per-player data not integrated']}
+          'warnings':['Official player ID not verified for all entries','Official fielding season data not integrated'],
+          'coverage':{'batting':'complete-first-team-regular-season','pitching':'complete-first-team-regular-season',
+                      'fielding':'unavailable','standings':'validated-official-halves'},
+          'sourceUrl':f'{BASE}/stats/recordall?year={year}&kindcode=A'}
     atomic_json(DATA/f'{year}.json',data)
     manifest_path=DATA/'manifest.json'
     if not manifest_path.exists():raise RuntimeError('First import historical archive before newer seasons')
