@@ -17,6 +17,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from sync import DATA, atomic_json, innings_outs, ratio
+from sync_halves import fetch_team_year
 
 try:
     import pandas as pd
@@ -125,7 +126,7 @@ def season_batter(row,roster,year):
     keys={'G':'出賽數','PA':'打席','AB':'打數','RBI':'打點','R':'得分','H':'安打','1B':'一安','2B':'二安','3B':'三安','HR':'全壘打','TB':'壘打數','SO':'被三振','SB':'盜壘','GIDP':'雙殺打','SH':'犧短','SF':'犧飛','BB':'四壞','HBP':'死球','CS':'盜壘刺'}
     o={'id':player_id(name,team,roster,year),'name':name,'team':team,'teamId':TEAM_IDS[team], 'identityVerified':(name,team) in roster}
     o.update({k:integer(row,v) for k,v in keys.items()})
-    for k in ('IBB','GO','FO'):o[k]=0
+    for k in ('IBB','GO','FO'):o[k]=None
     o['avg']=ratio(o['H'],o['AB']);o['obp']=ratio(o['H']+o['BB']+o['HBP'],o['AB']+o['BB']+o['HBP']+o['SF']);o['slg']=ratio(o['TB'],o['AB'])
     o['ops']=round(o['obp']+o['slg'],5) if o['obp'] is not None and o['slg'] is not None else None
     o['iso']=round(o['slg']-o['avg'],5) if o['slg'] is not None and o['avg'] is not None else None
@@ -137,25 +138,22 @@ def season_pitcher(row,roster,year):
     keys={'G':'出賽數','GS':'先發','GR':'救援','CG':'完投','SHO':'完封','W':'勝場','L':'敗場','SV':'救援成功','HLD':'中繼成功','BF':'打席','NP':'投球數','H':'被安打','HR':'被全壘打','BB':'四壞','HBP':'死球','SO':'奪三振','WP':'暴投','BK':'投手犯規','R':'失分','ER':'自責分'}
     o={'id':player_id(name,team,roster,year),'name':name,'team':team,'teamId':TEAM_IDS[team], 'identityVerified':(name,team) in roster}
     o.update({k:integer(row,v) for k,v in keys.items()})
-    for k in ('NBB','IBB','GO','FO'):o[k]=0
+    for k in ('NBB','IBB','GO','FO'):o[k]=None
     o['IP']=str(row.get('投球局數','0.0')).strip();o['outs']=innings_outs(o['IP'])
     o['era']=ratio(o['ER']*27,o['outs']);o['whip']=ratio((o['BB']+o['H'])*3,o['outs']);o['k9']=ratio(o['SO']*27,o['outs']);o['bb9']=ratio(o['BB']*27,o['outs'])
     return o
 
 def yearly_standings(s,year):
-    team_rows=[]
+    """Recover complete validated official first and second half standings."""
+    team_rows=[];halves={'first':[],'second':[]}
     for name,club in TEAM_IDS.items():
-        html=get_response(s,'GET',f'{BASE}/team/teamrecord?ClubNo={club}')
-        table=parse_table(html)
-        rows=[]
-        for _,r in table.iterrows():
-            label=str(r.iloc[0]).replace(' ','')
-            if re.fullmatch(rf'{year}\((上|下)\)',label):
-                rows.append({'w':integer(r,'勝'),'l':integer(r,'敗'),'t':integer(r,'和')})
-        if not rows:raise RuntimeError(f'Missing {name} {year} team history')
-        team_rows.append({'year':year,'id':club,'name':name,'short':name[:2],
-                          'w':sum(x['w'] for x in rows),'l':sum(x['l'] for x in rows),'t':sum(x['t'] for x in rows)})
-    return team_rows
+        stub={'year':year,'id':club,'name':name,'short':name[:2], 'w':0,'l':0,'t':0}
+        part=fetch_team_year(s,stub,year,allow_unreconciled=True)
+        for k in ('first','second'):
+            record={**{i:stub[i] for i in ('year','id','name','short')},**part[k]}
+            halves[k].append(record)
+        team_rows.append({**stub,**{x:part['first'][x]+part['second'][x] for x in ('w','l','t')}})
+    return team_rows,halves
 
 def run(year):
     s=requests.Session();s.headers.update({'User-Agent':'Mozilla/5.0 (compatible; independent CPBL stats research)'})
@@ -167,12 +165,12 @@ def run(year):
     for kind,rs in [('batting',batting),('pitching',pitching)]:
         ids=[(r['name'],r['team']) for r in rs]
         if len(ids)!=len(set(ids)):raise RuntimeError(f'Duplicate {kind} player/team rows')
-    standings=yearly_standings(s,year)
+    standings,halves=yearly_standings(s,year)
     if len(standings)!=6:raise RuntimeError('Official team coverage incomplete')
     if not (DATA/'manifest.json').exists():raise RuntimeError('Historical manifest missing; refusing partial official write')
     data={'year':year,'source':'cpbl.com.tw','sourceLicense':'Official public numerical statistics',
           'importedAt':datetime.now(timezone.utc).isoformat(timespec='seconds'),
-          'batting':batting,'pitching':pitching,'fielding':[], 'teams':standings,
+          'batting':batting,'pitching':pitching,'fielding':[], 'teams':standings,'halves':halves,
           'warnings':['Official historical ID not verified for all entries','Fielding per-player data not integrated']}
     atomic_json(DATA/f'{year}.json',data)
     manifest_path=DATA/'manifest.json'
