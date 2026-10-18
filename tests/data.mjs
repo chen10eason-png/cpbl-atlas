@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {outsIp,fmtIp,csvParse,loadSeason} from '../assets/data.js';
+assert.equal(outsIp('31.2'),95);
+assert.equal(fmtIp(95),'31.2');
+const quoted=csvParse('ID,Name,Team Name\n001,"王,甲",中信\n');
+assert.equal(quoted[0].ID,'001');
+assert.equal(quoted[0].Name,'王,甲');
+const row=(id,kind)=>kind==='battings'?`${id},測試${id},ACN,中信,1,5,4,0,1,2,1,0,0,1,5,0,0,0,0,0,1,0,0,0,0,0`:kind==='pitchings'?`${id},測試${id},ACN,中信,1,1,0,0,0,0,1,0,0,0,1.1,5,15,1,0,0,0,0,2,0,0,0,0,1,1`:`${id},測試${id},ACN,中信,P,1,2,1,1,0,0,0,0,0,0`;
+const headers={battings:'ID,Name,Team ID,Team Name,G,PA,AB,RBI,R,H,1B,2B,3B,HR,TB,SO,SB,GIDP,SH,SF,BB,IBB,HBP,CS,GO,FO',pitchings:'ID,Name,Team ID,Team Name,G,GS,GR,CG,SHO,NBB,W,L,SV,HLD,IP,BF,NP,H,HR,BB,IBB,HBP,SO,WP,BK,R,ER,GO,FO',fieldings:'ID,Name,Team ID,Team Name,POS,G,TC,PO,A,E,DP,TP,PB,CS,SB'};
+const fake={};for(const [kind,h] of Object.entries(headers)){fake[kind]=h+'\n'+Array.from({length:20},(_,i)=>row(String(i+1).padStart(10,'0'),kind)).join('\n')+'\n'}
+const standing='Year,Team ID,Old ID,Team,Team Nickname,Win,Lose,Tie\n2024,ACN,,中信兄弟,中信,70,50,0\n';
+globalThis.fetch=async url=>{const path=String(url);if(path.startsWith('./'))return {ok:false,status:404};const kind=['battings','pitchings','fieldings'].find(k=>path.includes(k));const body=kind?fake[kind]:path.includes('standings.csv')?standing:'';return {ok:!!body,status:body?200:404,text:async()=>body}};
+const result=await loadSeason(2024);
+assert.equal(result.batting.length,20);
+assert.equal(result.pitching.length,20);
+assert.equal(result.fielding.length,20);
+assert.equal(result.teams[0].w,70);
+assert.equal(result.batting[0].id,'0000000001');
+assert.equal(result.batting[0].avg,0.5);
+assert.equal(result.pitching[0].outs,4);
+console.log('Node data/CSV/innings smoke PASS (synthetic fixture, not published)');
