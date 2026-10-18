@@ -2,8 +2,8 @@
 export const ratio=(a,b)=>Number.isFinite(a)&&Number.isFinite(b)&&b>0?a/b:null;
 export const requiredPA=games=>Number.isFinite(games)&&games>0?Math.floor(games*3.1+0.5+1e-9):null;
 export const requiredOuts=games=>Number.isFinite(games)&&games>0?games*3:null;
-export const RATE_BAT=new Set(['avg','obp','slg','ops','iso','babip','kpct','bbpct','sec','gp','rc','sbpct','bbk','xbhpct','gofo']);
-export const RATE_PIT=new Set(['era','whip','k9','bb9','h9','hr9','kbb','kpct','bbpct','kbbpct','pPerInning','pPerBatter','fip','gofo']);
+export const RATE_BAT=new Set(['avg','obp','slg','ops','iso','babip','kpct','bbpct','sec','gp','rc','sbpct','bbk','xbhpct','gofo','hrPct','tbPerPA','paPerHR','bbMinusK','bipPctOfficial','opsPlusOfficial']);
+export const RATE_PIT=new Set(['era','whip','k9','bb9','h9','hr9','kbb','kpct','bbpct','kbbpct','pPerInning','pPerBatter','fip','gofo','eraPlusOfficial','fipOfficial','hrPct','kPerBB','ipPerGame']);
 export function enrichBatter(o){
   const x={...o};
   x.avg=ratio(x.H,x.AB);x.obp=ratio(x.H+x.BB+x.HBP,x.AB+x.BB+x.HBP+x.SF);
@@ -19,6 +19,12 @@ export function enrichBatter(o){
   x.bbk=ratio(x.BB,x.SO);
   x.sbpct=ratio(x.SB*100,x.SB+x.CS);
   x.gofo=ratio(x.GO,x.FO);
+  x.hrPct=ratio(x.HR*100,x.PA);
+  x.tbPerPA=ratio(x.TB,x.PA);
+  x.paPerHR=ratio(x.PA,x.HR);
+  x.bbMinusK=ratio((x.BB-x.SO)*100,x.PA);
+  x.extraBaseHits=x.xbh;
+  x.netSB=Number.isFinite(x.SB)&&Number.isFinite(x.CS)?x.SB-x.CS:null;
   return x;
 }
 export function enrichPitcher(o,fipConstant=null){
@@ -31,8 +37,13 @@ export function enrichPitcher(o,fipConstant=null){
   x.kbbpct=x.kpct==null||x.bbpct==null?null:x.kpct-x.bbpct;
   x.pPerInning=ratio(x.NP*3,outs);x.pPerBatter=ratio(x.NP,x.BF);
   x.gofo=ratio(x.GO,x.FO);
-  x.fip=Number.isFinite(fipConstant)&&Number.isFinite(x.IBB)&&Number.isFinite(x.HBP)&&outs>0
-    ? ratio((13*x.HR+3*(x.BB-x.IBB+x.HBP)-2*x.SO)*3,outs)+fipConstant:null;
+  x.hrPct=ratio(x.HR*100,x.BF);
+  x.kPerBB=ratio(x.SO,x.BB);
+  x.ipPerGame=ratio(x.outs,3*x.G);
+  // Preserve CPBL's published number when available; independently calculated FIP is a fallback.
+  x.fip=Number.isFinite(x.fipOfficial)?x.fipOfficial:
+    (Number.isFinite(fipConstant)&&Number.isFinite(x.IBB)&&Number.isFinite(x.HBP)&&outs>0
+      ? ratio((13*x.HR+3*(x.BB-x.IBB+x.HBP)-2*x.SO)*3,outs)+fipConstant:null);
   return x;
 }
 export function leagueFipConstant(pitching){

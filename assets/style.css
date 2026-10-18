@@ -9,3 +9,12 @@
 .standing-tabs button.selected{background:var(--lime);color:#142216}
 .standing-tabs button:disabled{opacity:.3;cursor:not-allowed}
 @media(max-width:680px){.standing-tabs{width:calc(100% - 44px)}.standing-tabs button{flex:1;padding:10px 7px}}
+
+/* V0.3 additional official portal and fielding table */
+.portal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.portal-card{background:#151f27;border:1px solid #30404b;border-radius:11px;padding:19px;display:flex;flex-direction:column;gap:9px;text-decoration:none;min-height:132px;transition:border-color .15s}
+.portal-card:hover{border-color:var(--lime);background:#1e2a30}.portal-card strong{font-size:15px;color:#e6f2eb}.portal-card span{color:#97aeb2;font-size:12px;line-height:1.65}.portal-card small{color:var(--lime);font-size:11px;margin-top:auto}
+.data-badge{border:1px solid #49604b;background:#18271f;color:#bcea90;border-radius:6px;padding:5px 9px;font-size:11px;white-space:nowrap}.data-badge.missing{background:#302922;color:#e4bba4;border-color:#634c3c}
+.metric-explainer{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.metric-explainer>div{border:1px solid #31414a;border-radius:9px;background:#19252b;padding:15px}.metric-explainer b{color:#c5f27f}.metric-explainer p{font-size:12px;line-height:1.6;color:#a9b7bc}
+@media(max-width:900px){.portal-grid,.metric-explainer{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.portal-grid,.metric-explainer{grid-template-columns:1fr}.portal-card{min-height:105px}}
