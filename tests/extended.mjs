@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {enrichBatter,enrichPitcher} from '../assets/advanced.js';
+const b=enrichBatter({H:30,AB:100,PA:118,BB:15,HBP:1,SF:2,TB:50,HR:5,SO:20,'2B':5,'3B':0,SB:4,CS:1,GO:18,FO:23});
+assert.ok(Math.abs(b.hrPct-500/118)<0.0001);
+assert.equal(b.paPerHR,23.6);
+assert.equal(b.netSB,3);
+assert.equal(b.opsPlusOfficial,undefined);
+const p=enrichPitcher({outs:60,ER:10,BB:12,H:20,HR:2,SO:30,HBP:1,IBB:null,BF:85,NP:310,G:6,GS:6,FO:null,GO:null,fipOfficial:3.42},null);
+assert.equal(p.fip,3.42);assert.ok(Math.abs(p.ipPerGame-20/6)<0.0001);
+assert.equal(p.eraPlusOfficial,undefined);
+console.log('Extended batting/pitching and official advanced source semantics PASS');
