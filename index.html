@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0b1016">
-  <title>CPBL ATLAS V0.3｜中職歷年數據與分析</title>
-  <meta name="description" content="中華職棒 1990–2026 歷年球員、球隊資料探索，含打擊投球守備、排名、跨年趨勢與官方資訊入口。2025–2026 僅在官方資料同步驗證成功後開放完整統計。">
+  <title>CPBL ATLAS V0.4｜中職歷年數據與分析</title>
+  <meta name="description" content="中華職棒 1990–2026 歷年球員、球隊與準即時文字戰況探索，含打擊投球守備、排名、跨年趨勢與官方資訊入口。2025–2026 僅在官方資料同步驗證成功後開放完整統計。">
   <link rel="stylesheet" href="./assets/style.css">
   <script type="module" src="./assets/app.js"></script>
 </head>
@@ -20,6 +20,7 @@
     <div class="sidebar-label">資料導覽 <span>EXPLORE</span></div>
     <nav class="side-nav" id="nav" aria-label="主要導覽">
       <a href="#overview" data-page="overview" class="active"><span class="nav-icon">◫</span> 總覽 <span class="nav-arrow">↗</span></a>
+      <a href="#live" data-page="live"><span class="nav-icon">●</span> 即時戰況 <span class="nav-arrow">↗</span></a>
       <a href="#batting" data-page="batting"><span class="nav-icon">◉</span> 打者數據</a>
       <a href="#pitching" data-page="pitching"><span class="nav-icon">◆</span> 投手數據</a>
       <a href="#fielding" data-page="fielding"><span class="nav-icon">◈</span> 守備數據</a>
@@ -37,9 +38,9 @@
     <div class="main-inner">
       <div class="headline-row">
         <div><div class="eyebrow"><span class="green-dot"></span> THE HISTORY. THE NUMBERS. THE GAME.</div><h1 id="page-heading">中職數據<span>總覽</span></h1><p class="tagline" id="page-description">從職棒元年到現在，找到每個球季背後的故事。</p></div>
-        <div class="year-control"><label for="year">球季 SEASON</label><select id="year" aria-label="選擇球季"></select></div>
+        <div class="year-control" id="year-control"><label for="year">球季 SEASON</label><select id="year" aria-label="選擇球季"></select></div>
       </div>
-      <div class="source-banner"><div><span class="source-dot"></span><strong id="source-status">正在檢查資料來源...</strong><span id="source-caption">先顯示開放授權的歷史紀錄，不包含即時比分。</span></div><a href="#about">來源與計算方式 ↗</a></div>
+      <div class="source-banner"><div><span class="source-dot"></span><strong id="source-status">正在檢查資料來源...</strong><span id="source-caption">球季數據非即時。即時戰況請開啟「即時戰況」專頁。</span></div><a href="#about">來源與計算方式 ↗</a></div>
       <section id="content" aria-live="polite"><div class="loading">正在讀取球季數據…</div></section>
       <footer class="footer"><span>CPBL ATLAS © 2026 · 非中職官方網站</span><span>資料來源：CPBL Opendata / 中華職棒官方公開紀錄</span></footer>
     </div>

@@ -1,9 +1,9 @@
 {
   "private": true,
   "name": "cpbl-atlas",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
-    "test": "node tests/data.mjs && node tests/advanced.mjs && node tests/extended.mjs"
+    "test": "node tests/data.mjs && node tests/advanced.mjs && node tests/extended.mjs && node tests/live.mjs"
   }
 }
