@@ -17,3 +17,12 @@ assert.ok(html.includes('中職官方即時文字轉播'));
 assert.ok(liveMarkup({...obj,games:[]},'2026-10-19').includes('尚無場次'));
 assert.throws(()=>liveMarkup({...obj,date:'2026-10-20'},'2026-10-19'));
 console.log('CPBL live client checks passed');
+import {parseArchiveIndex} from '../assets/live.js';
+const hist=parseArchiveIndex({schemaVersion:1, dates:[
+ {date:'2026-10-18',games:0},{date:'2026-10-20',games:2},
+ {date:'2026-10-19',games:1},{date:'2026-10-20',games:2},
+ {date:'2026-10-17',games:-1}
+]});
+assert.deepEqual(hist.map(v=>v.date),['2026-10-20','2026-10-19','2026-10-18']);
+assert.equal(statusText(7),'保留比賽');
+assert.throws(()=>parseArchiveIndex({schemaVersion:1,dates:null}));
