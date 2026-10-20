@@ -41,3 +41,9 @@
 @media(max-width:680px){.live-cta,.live-hero{flex-direction:column;align-items:stretch}.live-scoreline{gap:6px;padding:19px 12px}.live-score{font-size:27px;gap:6px}.live-side b{font-size:13px}.live-readout{align-items:flex-start;flex-direction:column}.live-match-list{grid-template-columns:1fr}.live-toolbar>.action{font-size:11px}}
 .live-situation{display:flex;align-items:center;justify-content:space-between;padding:5px 18px 12px;border-top:1px solid #2b3a42}.live-bso{display:flex;gap:15px;align-items:center;font-size:15px;font-variant-numeric:tabular-nums;font-weight:850}.live-bso b{color:#a2b6bd;margin-right:5px}.base-diamond{width:63px;height:55px;position:relative;margin-right:3px}.base{position:absolute;width:12px;height:12px;transform:rotate(45deg);background:#263941;border:2px solid #5b747b;display:block}.base.occupied{background:var(--lime);border-color:var(--lime)}.base.second{top:2px;left:25px}.base.third{top:22px;left:5px}.base.first{top:22px;right:4px}
 .live-filters{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 13px}.live-filters button{background:#1c3039;color:#b1c2c5;border:1px solid #394c55;font-size:11px;border-radius:7px;padding:7px 11px;cursor:pointer}.live-filters button.selected{background:var(--lime);color:#162117;border-color:var(--lime);font-weight:900}
+
+/* V0.4.1 – browsable verified historical game snapshots */
+.live-recent{border:1px solid var(--border, #334155);border-radius:12px;padding:12px 16px;margin:10px 0 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;}
+.live-recent-days{display:flex;gap:7px;flex-wrap:wrap;}
+.live-recent-days .action{font-size:12px;padding:6px 10px;}
+.live-readout .live-note{padding-top:6px;}
